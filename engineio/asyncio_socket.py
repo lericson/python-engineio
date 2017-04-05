@@ -44,7 +44,8 @@ class AsyncSocket(socket.Socket):
         elif pkt.packet_type == packet.CLOSE:
             await self.close(wait=False, abort=True)
         else:
-            raise ValueError
+            self.server.logger.warn('%s: Received unrecognized packet '
+                                    'type %d', self.sid, pkt.packet_type)
 
     async def send(self, pkt):
         """Send a packet to the client."""
@@ -177,10 +178,7 @@ class AsyncSocket(socket.Socket):
             if isinstance(p, six.text_type):  # pragma: no cover
                 p = p.encode('utf-8')
             pkt = packet.Packet(encoded_packet=p)
-            try:
-                await self.receive(pkt)
-            except ValueError:
-                pass
+            await self.receive(pkt)
 
         await self.queue.put(None)  # unlock the writer task so it can exit
         await asyncio.wait_for(writer_task, timeout=None)
